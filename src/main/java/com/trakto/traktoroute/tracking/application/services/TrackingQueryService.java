@@ -23,9 +23,7 @@ public class TrackingQueryService {
 
     private final TrackingRepository trackingRepository;
 
-    public TrackingQueryService(
-            TrackingRepository trackingRepository
-    ) {
+    public TrackingQueryService(TrackingRepository trackingRepository) {
         this.trackingRepository = trackingRepository;
     }
 

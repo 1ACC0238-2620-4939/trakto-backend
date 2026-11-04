@@ -19,19 +19,13 @@ public class TrackingCommandService {
 
     private final TrackingRepository trackingRepository;
 
-    public TrackingCommandService(
-            TrackingRepository trackingRepository
-    ) {
+    public TrackingCommandService(TrackingRepository trackingRepository) {
         this.trackingRepository = trackingRepository;
     }
 
     @Transactional
-    public Result<Tracking, ApplicationError> handle(
-            CreateTrackingCommand command
-    ) {
-        if (trackingRepository.existsByTripReferenceId(
-                command.tripReferenceId()
-        )) {
+    public Result<Tracking, ApplicationError> handle(CreateTrackingCommand command) {
+        if (trackingRepository.existsByTripReferenceId(command.tripReferenceId())) {
             return Result.failure(
                     ApplicationError.conflict(
                             "Tracking",
@@ -40,9 +34,7 @@ public class TrackingCommandService {
             );
         }
 
-        Tracking tracking = Tracking.create(
-                command.tripReferenceId()
-        );
+        Tracking tracking = Tracking.create(command.tripReferenceId());
 
         Tracking savedTracking = trackingRepository.save(tracking);
 

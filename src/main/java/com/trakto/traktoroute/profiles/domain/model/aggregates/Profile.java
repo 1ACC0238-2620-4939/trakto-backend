@@ -26,18 +26,15 @@ public class Profile extends AbstractDomainAggregateRoot<Profile> {
             PersonName personName
     ) {
         this.profileId = Objects.requireNonNull(
-                profileId,
-                "Profile ID cannot be null"
+                profileId, "Profile ID cannot be null"
         );
 
         this.userReferenceId = Objects.requireNonNull(
-                userReferenceId,
-                "User reference ID cannot be null"
+                userReferenceId, "User reference ID cannot be null"
         );
 
         this.personName = Objects.requireNonNull(
-                personName,
-                "Person name cannot be null"
+                personName, "Person name cannot be null"
         );
     }
 

@@ -136,8 +136,8 @@ public class Tracking extends AbstractDomainAggregateRoot<Tracking> {
 
         if (stationaryLocation == null) {
             beginStationaryPeriod(location, recordedAt);
-        } else if (distanceInMeters(stationaryLocation, location)
-                > STOP_RADIUS_METERS) {
+        } else
+            if (distanceInMeters(stationaryLocation, location) > STOP_RADIUS_METERS) {
 
             TrackingStop openStop = findOpenStop();
 
@@ -147,8 +147,7 @@ public class Tracking extends AbstractDomainAggregateRoot<Tracking> {
 
             beginStationaryPeriod(location, recordedAt);
         } else {
-            Duration stationaryDuration =
-                    Duration.between(stationarySince, recordedAt);
+            Duration stationaryDuration = Duration.between(stationarySince, recordedAt);
 
             if (stationaryDuration.compareTo(MINIMUM_STOP_DURATION) >= 0
                     && findOpenStop() == null) {
@@ -351,23 +350,20 @@ public class Tracking extends AbstractDomainAggregateRoot<Tracking> {
             GeoLocation destination
     ) {
         double originLatitude = Math.toRadians(origin.latitude());
-        double destinationLatitude =
-                Math.toRadians(destination.latitude());
+        double destinationLatitude = Math.toRadians(destination.latitude());
 
-        double latitudeDifference =
-                destinationLatitude - originLatitude;
+        double latitudeDifference = destinationLatitude - originLatitude;
 
-        double longitudeDifference = Math.toRadians(
-                destination.longitude() - origin.longitude()
-        );
+        double longitudeDifference =
+                Math.toRadians(destination.longitude() - origin.longitude());
 
-        double a =
-                Math.pow(Math.sin(latitudeDifference / 2), 2)
+        // Haversine
+        double a = Math.pow(Math.sin(latitudeDifference / 2), 2)
                         + Math.cos(originLatitude)
                         * Math.cos(destinationLatitude)
                         * Math.pow(Math.sin(longitudeDifference / 2), 2);
 
-        a = Math.max(0.0, Math.min(1.0, a));
+        a = Math.clamp(a, 0.0, 1.0);
 
         return EARTH_RADIUS_METERS
                 * 2
