@@ -16,9 +16,7 @@ public class ProfileCommandService {
 
     private final ProfileRepository profileRepository;
 
-    public ProfileCommandService(
-            ProfileRepository profileRepository
-    ) {
+    public ProfileCommandService(ProfileRepository profileRepository) {
         this.profileRepository = profileRepository;
     }
 

@@ -1,5 +1,6 @@
 package com.trakto.traktoroute.fleet.application.services.driver;
 
+import com.trakto.traktoroute.fleet.application.acl.profile.ProfileExistencePort;
 import com.trakto.traktoroute.fleet.application.commands.driver.ActivateDriverCommand;
 import com.trakto.traktoroute.fleet.application.commands.driver.ChangeDriverLicenseNumberCommand;
 import com.trakto.traktoroute.fleet.application.commands.driver.CreateDriverCommand;
@@ -15,13 +16,26 @@ import org.springframework.transaction.annotation.Transactional;
 public class DriverCommandService {
 
     private final DriverRepository driverRepository;
+    private final ProfileExistencePort profileExistencePort;
 
-    public DriverCommandService(DriverRepository driverRepository) {
+    public DriverCommandService(DriverRepository driverRepository,
+                                ProfileExistencePort profileExistencePort) {
         this.driverRepository = driverRepository;
+        this.profileExistencePort = profileExistencePort;
     }
 
     @Transactional
     public Result<Driver, ApplicationError> handle(CreateDriverCommand command) {
+
+        if (!profileExistencePort.profileExists(command.profileId().value())) {
+            return Result.failure(
+                    ApplicationError.notFound(
+                            "Profile",
+                            command.profileId().value().toString()
+                    )
+            );
+        }
+
 
         if (driverRepository.existsByProfileId(command.profileId())) {
             return Result.failure(

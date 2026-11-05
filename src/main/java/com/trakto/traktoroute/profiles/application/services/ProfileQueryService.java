@@ -17,9 +17,7 @@ public class ProfileQueryService {
 
     private final ProfileRepository profileRepository;
 
-    public ProfileQueryService(
-            ProfileRepository profileRepository
-    ) {
+    public ProfileQueryService(ProfileRepository profileRepository) {
         this.profileRepository = profileRepository;
     }
 
