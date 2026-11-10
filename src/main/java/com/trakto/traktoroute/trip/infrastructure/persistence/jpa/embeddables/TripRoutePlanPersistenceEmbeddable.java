@@ -22,7 +22,7 @@ public class TripRoutePlanPersistenceEmbeddable {
     @Column(name = "route_duration_minutes", nullable = false)
     private Integer durationMinutes;
 
-    @Column(name = "route_reference", nullable = false, length = 255)
+    @Column(name = "route_reference", nullable = false, columnDefinition = "LONGTEXT")
     private String routeReference;
 
     @Column(name = "route_calculated_at", nullable = false)

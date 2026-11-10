@@ -3,6 +3,7 @@ package com.trakto.traktoroute.trip.application.services;
 import com.trakto.traktoroute.shared.application.result.ApplicationError;
 import com.trakto.traktoroute.shared.application.result.Result;
 import com.trakto.traktoroute.trip.application.acl.fleet.FleetAvailabilityPort;
+import com.trakto.traktoroute.trip.application.acl.routes.RoutePlanningPort;
 import com.trakto.traktoroute.trip.application.acl.tracking.TrackingManagementPort;
 import com.trakto.traktoroute.trip.application.commands.CancelTripCommand;
 import com.trakto.traktoroute.trip.application.commands.CompleteTripCommand;
@@ -11,6 +12,7 @@ import com.trakto.traktoroute.trip.application.commands.StartTripCommand;
 import com.trakto.traktoroute.trip.domain.model.aggregates.Trip;
 import com.trakto.traktoroute.trip.domain.model.enums.TripStatus;
 import com.trakto.traktoroute.trip.domain.model.valueobjects.TripId;
+import com.trakto.traktoroute.trip.domain.model.valueobjects.TripRoutePlan;
 import com.trakto.traktoroute.trip.domain.repositories.TripRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,21 +23,22 @@ public class TripCommandService {
     private final TripRepository tripRepository;
     private final FleetAvailabilityPort fleetAvailabilityPort;
     private final TrackingManagementPort trackingManagementPort;
+    private final RoutePlanningPort routePlanningPort;
 
     public TripCommandService(
             TripRepository tripRepository,
             FleetAvailabilityPort fleetAvailabilityPort,
-            TrackingManagementPort trackingManagementPort
+            TrackingManagementPort trackingManagementPort,
+            RoutePlanningPort routePlanningPort
     ) {
         this.tripRepository = tripRepository;
         this.fleetAvailabilityPort = fleetAvailabilityPort;
         this.trackingManagementPort = trackingManagementPort;
+        this.routePlanningPort = routePlanningPort;
     }
 
     @Transactional
-    public Result<TripId, ApplicationError> handle(
-            CreateTripCommand command
-    ) {
+    public Result<TripId, ApplicationError> handle(CreateTripCommand command) {
 
         if (!fleetAvailabilityPort.canAssignDriver(
                 command.driverId().value())) {
@@ -59,6 +62,17 @@ public class TripCommandService {
             );
         }
 
+        var routePlanResult = routePlanningPort.planRoute(
+                command.origin(),
+                command.destination()
+        );
+
+        if (routePlanResult.isFailure()) {
+            return routePlanResult.map(plan -> null);
+        }
+
+        TripRoutePlan routePlan = routePlanResult.getOrElse(null);
+
         Trip trip;
 
         try {
@@ -68,7 +82,7 @@ public class TripCommandService {
                     command.origin(),
                     command.destination(),
                     command.schedule(),
-                    command.routePlan()
+                    routePlan
             );
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Result.failure(

@@ -1,4 +1,4 @@
-package com.trakto.traktoroute.fleet.interfaces.acl;
+package com.trakto.traktoroute.fleet.interfaces.acl.profile;
 
 import com.trakto.traktoroute.fleet.application.acl.profile.ProfileExistencePort;
 import com.trakto.traktoroute.profiles.interfaces.acl.ProfilesContextFacade;

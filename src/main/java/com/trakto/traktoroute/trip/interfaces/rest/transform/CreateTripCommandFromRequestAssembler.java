@@ -34,17 +34,11 @@ public class CreateTripCommandFromRequestAssembler {
                 null,
                 null);
 
-        var routePlan = new TripRoutePlan(
-                request.distanceKm(),
-                request.durationMinutes(),
-                request.routeReference(),
-                request.calculatedAt());
 
         return new CreateTripCommand(driverId,
                                     vehicleId,
                                     origin,
                                     destination,
-                                    schedule,
-                                    routePlan);
+                                    schedule);
     }
 }

@@ -7,6 +7,7 @@ import com.trakto.traktoroute.trip.domain.repositories.TripRepository;
 import com.trakto.traktoroute.trip.infrastructure.persistence.jpa.assemblers.TripPersistenceAssembler;
 import com.trakto.traktoroute.trip.infrastructure.persistence.jpa.entities.TripPersistenceEntity;
 import com.trakto.traktoroute.trip.infrastructure.persistence.jpa.repositories.TripPersistenceRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,9 +18,12 @@ import java.util.Optional;
 public class TripRepositoryImpl implements TripRepository {
 
     private final TripPersistenceRepository tripPersistenceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public TripRepositoryImpl(TripPersistenceRepository tripPersistenceRepository) {
+    public TripRepositoryImpl(TripPersistenceRepository tripPersistenceRepository,
+                              ApplicationEventPublisher eventPublisher) {
         this.tripPersistenceRepository = tripPersistenceRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -53,19 +57,29 @@ public class TripRepositoryImpl implements TripRepository {
     @Override
     @Transactional
     public Trip save(Trip trip) {
-        TripPersistenceEntity entity = tripPersistenceRepository
-                                            .findByTripId(trip.getId())
-                                            .orElse(null);
+        Optional<TripPersistenceEntity> existingEntity =
+                tripPersistenceRepository.findByTripId(trip.getId());
 
-        if (entity == null) {
-            entity = TripPersistenceAssembler.toPersistenceFromDomain(trip);
-        } else {
+        Trip saved;
+
+        if (existingEntity.isPresent()) {
+            TripPersistenceEntity entity = existingEntity.get();
             TripPersistenceAssembler.updatePersistenceFromDomain(trip, entity);
+
+            TripPersistenceEntity savedEntity = tripPersistenceRepository.save(entity);
+            saved = TripPersistenceAssembler.toDomainFromPersistence(savedEntity);
+        } else {
+            TripPersistenceEntity newEntity =
+                    TripPersistenceAssembler.toPersistenceFromDomain(trip);
+
+            TripPersistenceEntity savedEntity = tripPersistenceRepository.save(newEntity);
+            saved = TripPersistenceAssembler.toDomainFromPersistence(savedEntity);
         }
 
-        TripPersistenceEntity savedEntity = tripPersistenceRepository.save(entity);
+        trip.domainEvents().forEach(eventPublisher::publishEvent);
+        trip.clearDomainEvents();
 
-        return TripPersistenceAssembler.toDomainFromPersistence(savedEntity);
+        return saved;
     }
 
     @Override

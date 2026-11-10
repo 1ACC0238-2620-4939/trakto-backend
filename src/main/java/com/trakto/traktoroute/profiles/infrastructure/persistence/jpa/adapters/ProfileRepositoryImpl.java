@@ -8,6 +8,7 @@ import com.trakto.traktoroute.profiles.infrastructure.persistence.jpa.assemblers
 import com.trakto.traktoroute.profiles.infrastructure.persistence.jpa.entities.ProfilePersistenceEntity;
 import com.trakto.traktoroute.profiles.infrastructure.persistence.jpa.repositories.ProfilePersistenceRepository;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +19,14 @@ import java.util.Optional;
 public class ProfileRepositoryImpl implements ProfileRepository {
 
     private final ProfilePersistenceRepository profilePersistenceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ProfileRepositoryImpl(
-            ProfilePersistenceRepository profilePersistenceRepository
+            ProfilePersistenceRepository profilePersistenceRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.profilePersistenceRepository = profilePersistenceRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -56,27 +60,27 @@ public class ProfileRepositoryImpl implements ProfileRepository {
     @Override
     @Transactional
     public Profile save(Profile profile) {
-        ProfilePersistenceEntity entity = profilePersistenceRepository
-                .findByProfileId(profile.getProfileId())
-                .orElse(null);
 
-        if (entity == null) {
-            entity = ProfilePersistenceAssembler.toPersistenceFromDomain(
-                    profile
-            );
+        Optional<ProfilePersistenceEntity> existingEntity = profilePersistenceRepository
+                .findByProfileId(profile.getProfileId());
+        Profile saved;
+        if (existingEntity.isPresent()) {
+            ProfilePersistenceEntity entity = existingEntity.get();
+            ProfilePersistenceAssembler.updatePersistenceFromDomain(profile, entity);
+
+            ProfilePersistenceEntity savedEntity = profilePersistenceRepository.save(entity);
+            saved = ProfilePersistenceAssembler.toDomainFromPersistence(savedEntity);
+
         } else {
-            ProfilePersistenceAssembler.updatePersistenceFromDomain(
-                    profile,
-                    entity
-            );
+            ProfilePersistenceEntity newEntity = ProfilePersistenceAssembler.toPersistenceFromDomain(profile);
+            ProfilePersistenceEntity savedEntity = profilePersistenceRepository.save(newEntity);
+            saved = ProfilePersistenceAssembler.toDomainFromPersistence(savedEntity);
         }
+        profile.domainEvents().forEach(eventPublisher::publishEvent);
+        profile.clearDomainEvents();
 
-        ProfilePersistenceEntity savedEntity =
-                profilePersistenceRepository.save(entity);
+        return saved;
 
-        return ProfilePersistenceAssembler.toDomainFromPersistence(
-                savedEntity
-        );
     }
 
     @Override

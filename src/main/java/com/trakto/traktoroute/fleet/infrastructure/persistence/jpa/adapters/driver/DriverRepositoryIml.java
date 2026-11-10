@@ -7,7 +7,9 @@ import com.trakto.traktoroute.fleet.domain.model.valueobjects.driver.LicenseNumb
 import com.trakto.traktoroute.fleet.domain.model.valueobjects.driver.ProfileId;
 import com.trakto.traktoroute.fleet.domain.repositories.DriverRepository;
 import com.trakto.traktoroute.fleet.infrastructure.persistence.jpa.assemblers.driver.DriverPersistenceAssembler;
+import com.trakto.traktoroute.fleet.infrastructure.persistence.jpa.entities.driver.DriverPersistenceEntity;
 import com.trakto.traktoroute.fleet.infrastructure.persistence.jpa.repositories.driver.DriverPersistenceRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,15 +19,20 @@ import java.util.Optional;
 public class DriverRepositoryIml implements DriverRepository {
 
     private final DriverPersistenceRepository driverPersistenceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public DriverRepositoryIml(DriverPersistenceRepository driverPersistenceRepository) {
+    public DriverRepositoryIml(DriverPersistenceRepository driverPersistenceRepository,
+                               ApplicationEventPublisher eventPublisher) {
         this.driverPersistenceRepository = driverPersistenceRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
     public Driver save(Driver driver) {
 
-        var existingEntity = driverPersistenceRepository.findByDriverId(driver.getId());
+        Optional<DriverPersistenceEntity> existingEntity = driverPersistenceRepository.findByDriverId(driver.getId());
+
+        Driver saved;
 
         if (existingEntity.isPresent()) {
             var entity = existingEntity.get();
@@ -35,13 +42,20 @@ public class DriverRepositoryIml implements DriverRepository {
                     entity);
 
             var savedEntity = driverPersistenceRepository.save(entity);
-            return DriverPersistenceAssembler.toDomainFromPersistence(savedEntity);
-        }
+            saved = DriverPersistenceAssembler.toDomainFromPersistence(savedEntity);
+        } else {
+            var newEntity = DriverPersistenceAssembler.toPersistenceFromDomain(driver);
+            var savedEntity = driverPersistenceRepository.save(newEntity);
+            saved = DriverPersistenceAssembler.toDomainFromPersistence(savedEntity);
 
-        var newEntity = DriverPersistenceAssembler.toPersistenceFromDomain(driver);
-        var savedEntity = driverPersistenceRepository.save(newEntity);
-        return DriverPersistenceAssembler.toDomainFromPersistence(savedEntity);
+        }
+        driver.domainEvents().forEach(eventPublisher::publishEvent);
+        driver.clearDomainEvents();
+
+        return saved;
+
     }
+
 
     @Override
     public Optional<Driver> findById(DriverId driverId) {

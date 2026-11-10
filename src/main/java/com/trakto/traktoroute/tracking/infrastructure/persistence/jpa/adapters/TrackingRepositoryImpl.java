@@ -7,6 +7,7 @@ import com.trakto.traktoroute.tracking.domain.repositories.TrackingRepository;
 import com.trakto.traktoroute.tracking.infrastructure.persistence.jpa.assemblers.TrackingPersistenceAssembler;
 import com.trakto.traktoroute.tracking.infrastructure.persistence.jpa.entities.TrackingPersistenceEntity;
 import com.trakto.traktoroute.tracking.infrastructure.persistence.jpa.repositories.TrackingJpaRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +17,14 @@ import java.util.Optional;
 public class TrackingRepositoryImpl implements TrackingRepository {
 
     private final TrackingJpaRepository trackingJpaRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TrackingRepositoryImpl(
-            TrackingJpaRepository trackingJpaRepository
+            TrackingJpaRepository trackingJpaRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.trackingJpaRepository = trackingJpaRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -44,21 +48,24 @@ public class TrackingRepositoryImpl implements TrackingRepository {
     @Override
     @Transactional
     public Tracking save(Tracking tracking) {
-        TrackingPersistenceEntity entity = trackingJpaRepository
-                .findByTrackingId(tracking.getTrackingId())
-                .orElse(null);
+        Optional<TrackingPersistenceEntity> existingEntity = trackingJpaRepository
+                .findByTrackingId(tracking.getTrackingId());
+        Tracking saved;
+        if (existingEntity.isPresent()) {
+            TrackingPersistenceEntity entity = existingEntity.get();
+            TrackingPersistenceAssembler.updatePersistenceFromDomain(tracking,entity);
 
-        if (entity == null) {
-            entity = TrackingPersistenceAssembler
-                    .toPersistenceFromDomain(tracking);
+            TrackingPersistenceEntity savedEntity = trackingJpaRepository.save(entity);
+            saved = TrackingPersistenceAssembler.toDomainFromPersistence(savedEntity);
         } else {
-            TrackingPersistenceAssembler
-                    .updatePersistenceFromDomain(tracking, entity);
+            TrackingPersistenceEntity newEntity = TrackingPersistenceAssembler.toPersistenceFromDomain(tracking);
+            TrackingPersistenceEntity savedEntity = trackingJpaRepository.save(newEntity);
+            saved = TrackingPersistenceAssembler.toDomainFromPersistence(savedEntity);
         }
+        tracking.domainEvents().forEach(eventPublisher::publishEvent);
+        tracking.clearDomainEvents();
 
-        trackingJpaRepository.save(entity);
-
-        return tracking;
+        return saved;
     }
 
     @Override

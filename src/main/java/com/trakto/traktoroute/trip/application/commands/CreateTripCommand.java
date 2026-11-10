@@ -7,7 +7,5 @@ public record CreateTripCommand(
         VehicleId vehicleId,
         TripLocation origin,
         TripLocation destination,
-        TripSchedule schedule,
-        TripRoutePlan routePlan
-) {
+        TripSchedule schedule) {
 }

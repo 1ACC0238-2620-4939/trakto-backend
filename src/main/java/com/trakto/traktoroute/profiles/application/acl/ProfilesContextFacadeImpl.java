@@ -1,9 +1,5 @@
 package com.trakto.traktoroute.profiles.application.acl;
 
-import com.trakto.traktoroute.profiles.application.queries.GetProfileByIdQuery;
-import com.trakto.traktoroute.profiles.application.services.ProfileCommandService;
-import com.trakto.traktoroute.profiles.application.services.ProfileQueryService;
-import com.trakto.traktoroute.profiles.domain.model.aggregates.Profile;
 import com.trakto.traktoroute.profiles.domain.model.valueobjects.ProfileId;
 import com.trakto.traktoroute.profiles.domain.repositories.ProfileRepository;
 import com.trakto.traktoroute.profiles.interfaces.acl.ProfilesContextFacade;

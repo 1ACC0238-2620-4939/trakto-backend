@@ -7,6 +7,7 @@ import com.trakto.traktoroute.fleet.domain.model.valueobjects.vehicle.VehicleId;
 import com.trakto.traktoroute.fleet.domain.repositories.VehicleRepository;
 import com.trakto.traktoroute.fleet.infrastructure.persistence.jpa.assemblers.vehicle.VehiclePersistenceAssembler;
 import com.trakto.traktoroute.fleet.infrastructure.persistence.jpa.repositories.vehicle.VehiclePersistenceRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,15 +17,20 @@ import java.util.Optional;
 public class VehicleRepositoryIml implements VehicleRepository {
 
     private final VehiclePersistenceRepository vehicleRepositoryIml;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public VehicleRepositoryIml(VehiclePersistenceRepository vehicleRepositoryIml) {
+    public VehicleRepositoryIml(VehiclePersistenceRepository vehicleRepositoryIml,
+                                ApplicationEventPublisher eventPublisher) {
         this.vehicleRepositoryIml = vehicleRepositoryIml;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
     public Vehicle save(Vehicle vehicle) {
 
         var existingEntity = vehicleRepositoryIml.findByVehicleId(vehicle.getId());
+
+        Vehicle saved;
 
         if (existingEntity.isPresent()) {
 
@@ -35,12 +41,16 @@ public class VehicleRepositoryIml implements VehicleRepository {
             );
 
             var savedEntity = vehicleRepositoryIml.save(entity);
-            return VehiclePersistenceAssembler.toDomainFromPersistence(savedEntity);
+            saved = VehiclePersistenceAssembler.toDomainFromPersistence(savedEntity);
+        }else {
+            var newEntity = VehiclePersistenceAssembler.toPersistenceFromDomain(vehicle);
+            var savedEntity = vehicleRepositoryIml.save(newEntity);
+            saved = VehiclePersistenceAssembler.toDomainFromPersistence(savedEntity);
         }
 
-        var newEntity = VehiclePersistenceAssembler.toPersistenceFromDomain(vehicle);
-        var savedEntity = vehicleRepositoryIml.save(newEntity);
-        return VehiclePersistenceAssembler.toDomainFromPersistence(savedEntity);
+        vehicle.domainEvents().forEach(eventPublisher::publishEvent);
+        vehicle.clearDomainEvents();
+        return saved;
     }
 
     @Override

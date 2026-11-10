@@ -17,10 +17,8 @@ public class FleetContextFacadeImpl implements FleetContextFacade {
     private final DriverQueryService driverQueryService;
     private final VehicleQueryService vehicleQueryService;
 
-    public FleetContextFacadeImpl(
-            DriverQueryService driverQueryService,
-            VehicleQueryService vehicleQueryService
-    ) {
+    public FleetContextFacadeImpl(DriverQueryService driverQueryService,
+                                  VehicleQueryService vehicleQueryService) {
         this.driverQueryService = driverQueryService;
         this.vehicleQueryService = vehicleQueryService;
     }

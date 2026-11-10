@@ -46,18 +46,6 @@ public record CreateTripRequest(
                 example = "2026-09-25T14:00:00Z")
         Instant scheduledAt,
 
-        @Schema(description = "Route distance in kilometers",
-                example = "21.50")
-        BigDecimal distanceKm,
-
-        @Schema(description = "Estimated route duration in minutes",
-                example = "55")
-        int durationMinutes,
-
-        @Schema(description = "External route reference",
-                example = "route-123")
-        String routeReference,
-
         @Schema(description = "Date and time when the route was calculated",
                 example = "2026-09-24T18:00:00Z")
         Instant calculatedAt
